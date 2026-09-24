@@ -247,7 +247,19 @@ def render_video_results(session_dir, context="default"):
     df = load_csv(session_dir / "video_features.csv")
     events_df = load_csv(session_dir / "behavioral_events.csv")
 
-    # Warn if the video had poor face detection
+    # --- Case 1: no face at all ---
+    if report.get("face_detected") is False or report.get("face_detection_pct", 0) == 0:
+        st.warning(
+            "**No face detected in the uploaded video.**\n\n"
+            "The analyzer couldn't find a face in any frame. This usually means:\n"
+            "- The video contains no person\n"
+            "- The face is too small, blurred, or at an extreme angle\n"
+            "- The video is very dark or heavily stylized\n\n"
+            "**Try again with a clear, front-facing video of a person.**"
+        )
+        return
+
+    # --- Case 2: very few frames had a face ---
     face_pct = report.get("face_detection_pct", 0)
     if face_pct < 5:
         st.warning(
@@ -256,10 +268,14 @@ def render_video_results(session_dir, context="default"):
             "The analyzer needs a clear view of a person's face for accurate "
             "results. Try a video with better lighting and a front-facing person."
         )
-    else:
-        st.success(f"✓ Analysis complete — {session_dir.name}")
+        return
+
+    # --- Case 3: normal analysis ---
+    st.success(f"✓ Analysis complete — {session_dir.name}")
 
     render_kpis(report, events_df)
+
+    # ... rest of the function unchanged
     # --- Time series ---
     if "elapsed_seconds" in df.columns and len(df) > 1:
         section("Time Series")

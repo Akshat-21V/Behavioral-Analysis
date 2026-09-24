@@ -799,6 +799,39 @@ def analyze_video(video_path, output_dir=None, verbose=True):
     if best_frame is not None:
         cv2.imwrite(str(session_dir / "annotated_preview.png"), best_frame)
 
+    # -----------------------------------------------------------------
+    # Handle "no face detected" case
+    # -----------------------------------------------------------------
+    if face_frames == 0:
+        print()
+        print("=" * 40)
+        print("NO FACE DETECTED IN VIDEO")
+        print("=" * 40)
+        print("The system could not find a face in any frame.")
+        print("This usually means:")
+        print("  - The video contains no person")
+        print("  - The face is too small, blurred, or at an extreme angle")
+        print("  - The video is very dark or heavily stylized")
+        print("Try again with a clear, front-facing video of a person.")
+        print("=" * 40)
+
+        report = {
+            "session_id":              session_dir.name,
+            "session_type":            "video",
+            "session_start":           datetime.now().isoformat(),
+            "source_file":             str(video_path),
+            "face_detected":           False,
+            "error":                   "No face detected in any frame",
+            "duration_seconds":        round(elapsed, 2),
+            "processed_frames":        processed_frames,
+            "face_detection_pct":      0.0,
+        }
+        with open(session_dir / "session_report.json", "w") as f:
+            json.dump(report, f, indent=2)
+
+        detector.close()
+        return session_dir
+
     # JSON report
     report = {
         "session_id":               session_dir.name,
